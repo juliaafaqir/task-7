@@ -1,8 +1,21 @@
 const express = require('express');
 const app = express();
 const Joi = require('joi');
+const ErrorHandler = require('./errorHandler.js');
+const logger = require('./logger.js')
 
 app.use(express.json());
+app.use(ErrorHandler);
+app.use(logger);
+
+// Testing error handler:
+// app.use("/", (req, res, next) => {
+//     try{
+//         // code block to be executed
+//     }catch(err){
+//       next(err);
+//     }
+//   })
 
 const courses = [
     {id: 1, name: 'course1'},
@@ -16,10 +29,6 @@ const listener = app.listen(process.env.PORT || 3000, () => {
   });
 
 //app.get()
-app.get('/', (req,res)=>{
-    res.send('<h1>Hello World!!!</h1>');
-});
-
 app.get('/api/courses', (req,res)=>{
     res.send(courses);
 });
@@ -73,7 +82,6 @@ app.delete('/api/courses/:id', (req,res)=>{
 })
 
 //Validate fun
-
 function validateCourse(course){
     const schema ={
         name: Joi.string().min(3).required() 
