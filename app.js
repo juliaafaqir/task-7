@@ -2,7 +2,10 @@ const express = require('express');
 const app = express();
 const Joi = require('joi');
 const ErrorHandler = require('./errorHandler.js');
-const logger = require('./logger.js')
+const logger = require('./logger.js');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 app.use(express.json());
 app.use(ErrorHandler);
