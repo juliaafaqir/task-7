@@ -7,3 +7,4 @@ APIs endpoints:
 - Get course by id: /api/courses/1
 - Post new course : /api/courses, and add the following in the body {"name": "course name"}
 - Put to update specific course: /api/courses/1, and add the new course name 
+- Delete any course by specifying the id: /api/courses/1

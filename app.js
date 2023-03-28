@@ -1,14 +1,27 @@
 const express = require('express');
 const app = express();
 const Joi = require('joi');
-const ErrorHandler = require('./errorHandler.js');
+const errorHandler = require('./errorHandler.js');
 const logger = require('./logger.js');
-const dotenv = require('dotenv');
+const dotenv = require('dotenv'); 
+const {Client} = require('pg')
+const client = new Client({
+    host: "interns.postgres.database.azure.com",
+    port: 5432,
+    user: "postgres",
+    password: "zatar123!",
+    database: "julia"
+})
+
+client.connect()
+.then(() => console.log("connected successfully"))
+.catch(e => console.log(e.message))
+.finally(() => client.end())
 
 dotenv.config();
 
 app.use(express.json());
-app.use(ErrorHandler);
+app.use(errorHandler);
 app.use(logger);
 
 // Testing error handler:
@@ -38,10 +51,12 @@ app.get('/api/courses', (req,res)=>{
 
 
 app.get('/api/courses/:id', (req,res) =>{
-    const course = courses.find(c => c.id === parseInt(req.params.id));
+    try {const course = courses.find(c => c.id === parseInt(req.params.id));
     if (!course) return res.status(404).send('course with given ID not found');
-    res.send(course);
-});
+    res.send(course);}
+    catch (error) {
+        response.status(500).send('Something went wrong');   
+} });
 
 // app.post()
 app.post('/api/courses', (req,res)=>{
