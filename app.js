@@ -6,6 +6,7 @@ const errorHandler = require('./errorHandler.js');
 const logger = require('./logger.js');
 const dotenv = require('dotenv'); 
 const {Client} = require('pg')
+
 const client = new Client({
     host: "interns.postgres.database.azure.com",
     port: 5432,
@@ -18,10 +19,10 @@ const sql= fs.readFileSync('./schema.sql').toString();
 
 client.connect()
 .then(() => console.log("connected successfully"))
-.then(() => client.query("select * from courses"))
-.then(results => console.table(results.rows))
+// .then(() => client.query("select * from courses"))
+// .then(results => console.table(results.rows))
 .catch(e => console.log(e.message))
-.finally(() => client.end())
+// .finally(() => client.end())
 
 dotenv.config();
 
@@ -43,20 +44,23 @@ const listener = app.listen(process.env.PORT || 3000, () => {
 //app.get()
 app.get('/api/courses', (req,res)=>{
     try {
-        res.status(200).json(courses);   
+        
+        client.query("select * from courses").then(results =>res.status(200).send(results.rows));
+          
    } catch (error) {
-        res.status(500).send('Something went wrong');   
+        res.status(500).send(`Something went wrong: ${error.message}`);   
 } });
 
 
 app.get('/api/courses/:id', (req,res) =>{
     try {
-        const course = courses.find(c => c.id === parseInt(req.params.id));
-        if (!course) return res.status(404).send('course with given ID not found');
-        res.status(200).json(course);
+        const id = parseInt(req.params.id)
+        client.query('select * from courses WHERE id = $1', [id]).then(results => res.status(200).send(results.rows))
+        if (!id) return res.status(404).send("course with given ID not found");
+        
     }
     catch (error) {
-        res.status(500).send('Something went wrong');   
+        res.status(500).send(`Something went wrong: ${error.message}`);   
 } 
 });
 
@@ -70,45 +74,43 @@ app.post('/api/courses', (req,res)=>{
         id: courses.length +1,
         name: req.body.name
     };
-    courses.push(course);
-    res.status(200).json(course);
+    client.query('INSERT INTO courses (name) VALUES ($1)', [req.body.name])
+    res.status(201).json(course);
 } catch (error) {
-    res.status(500).send('Something went wrong');   
+    res.status(500).send(`Something went wrong: ${error.message}`);   
 } 
 });
 
 // app.put()
 app.put('/api/courses/:id', (req,res) => {
     try{
-    const course = courses.find(c => c.id === parseInt(req.params.id));
-    if (!course) return res.status(404).send('course with given ID not found');
+        const id = parseInt(req.params.id)
+        if (!id) return res.status(404).send('course with given ID not found');
+        client.query('UPDATE courses SET name = $1 WHERE id = $2',[req.body.name, id]).then(results => res.status(200).send(`User modified with ID: ${id}`));
+
+
 
     // const result = validateCourse(req.body);
     const { error } = validateCourse(req.body); // eq to result.error
     if(error) return res.status(400).send(result.error.details[0].message)
         
-    //update course
-    course.name = req.body.name;
-    //return the updated course
-    res.status(200).json(course);
+
     } catch (error) {
-        res.status(500).send('Something went wrong');   
+        res.status(500).send(`Something went wrong: ${error.message}`);   
 } 
 });
 
 // app.delete()
 app.delete('/api/courses/:id', (req,res)=>{
     try{
-    const course = courses.find(c => c.id === parseInt(req.params.id));
-    if (!course) return res.status(404).send('course with given ID not found');
+    const id = parseInt(req.params.id)
+    if (!id) return res.status(404).send('course with given ID not found');
 
-    const index = courses.indexOf(course);
+    client.query('DELETE FROM courses WHERE id = $1', [id])
 
-    courses.splice(index,1);
-
-    res.status(200).json(course);
+    res.status(200).send(`User deleted with ID: ${id}`);
     } catch (error) {
-        res.status(500).send('Something went wrong');   
+        res.status(500).send(`Something went wrong: ${error.message}`);   
 } 
 
 })
