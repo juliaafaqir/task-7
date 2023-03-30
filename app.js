@@ -11,24 +11,9 @@ const prisma = new PrismaClient()
 
 dotenv.config();
 
-const client = new Client({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-});
-
-client.connect()
-.then(()=> {const listener = app.listen(process.env.PORT || 3000, () => {
-    console.log("App listening on port " + listener.address().port);
-  })})
-.then(() => console.log("connected successfully"))
-// .then(() => client.query("select * from courses"))
- // .then(results => console.table(results.rows))
-.catch((e) => console.log(e.message));
-// .finally(() => client.end())
-
+const listener = app.listen(process.env.PORT || 3000, () => {
+  console.log("App listening on port " + listener.address().port);
+})
 
 app.use(express.json());
 app.use(errorHandler);
@@ -37,9 +22,10 @@ app.use(logger);
 //app.get()
 app.get("/api/courses", (req, res) => {
   try {
-    client
-      .query("select * from courses")
-      .then((results) => res.status(200).send(results.rows));
+      prisma.course.findMany()
+      .then((results) => {
+        console.log(results)
+        res.status(200).send(results)})
   } catch (error) {
     res.status(500).send(`Something went wrong: ${error.message}`);
   }
@@ -48,12 +34,12 @@ app.get("/api/courses", (req, res) => {
 //app.get(id)
 app.get("/api/courses/:id", (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    client
-      .query("select * from courses WHERE id = $1", [id])
-      .then((results) => {
-        if (results.rows.length > 0) res.status(200).send(results.rows);    
-        else res.status(404).send("course with given ID not found");
+    prisma.course.findUnique({
+      where: { id: parseInt(req.params.id)}
+    })
+    .then((results) => {
+      if (results) res.status(200).send(results);    
+      else res.status(404).send("course with given ID not found");
 
       });
   } catch (error) {
@@ -61,15 +47,17 @@ app.get("/api/courses/:id", (req, res) => {
   }
 });
 
+
 // app.post()
 app.post("/api/courses", (req, res) => {
   try {
     const { error } = validateCourse(req.body); // eq to result.error
     if (error) return res.status(400).send(result.error.details[0].message);
 
-    client
-    .query("INSERT INTO courses (name) VALUES ($1)", [req.body.name])
-    .then((results) => res.status(201).json(course))
+    prisma.course.create({
+    data :{ name : req.body.name}
+    })
+    .then(results => res.status(201).send(results))
     
   } catch (error) {
     res.status(500).send(`Something went wrong: ${error.message}`);
@@ -78,15 +66,14 @@ app.post("/api/courses", (req, res) => {
 
 // app.put()
 app.put("/api/courses/:id", (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    
-    client
-      .query("UPDATE courses SET name = $1 WHERE id = $2", [req.body.name, id])
-      .then((results) => res.status(200).send(`User modified with ID: ${id}`));
+  try {    
+    prisma.course.update({
+      where: { id: parseInt(req.params.id)},
+      data: {name:req.body.name}
+    })
+      .then((results) => res.status(201).send(`User modified with ID: ${req.params.id}`));
 
-    // const result = validateCourse(req.body);
-    const { error } = validateCourse(req.body); // eq to result.error
+    const { error } = validateCourse(req.body);
     if (error) return res.status(400).send(result.error.details[0].message);
   } catch (error) {
     res.status(500).send(`Something went wrong: ${error.message}`);
@@ -96,12 +83,12 @@ app.put("/api/courses/:id", (req, res) => {
 // app.delete()
 app.delete("/api/courses/:id", (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    if (!id) return res.status(404).send("course with given ID not found");
+    if (!parseInt(req.params.id)) return res.status(404).send("course with given ID not found");
 
-    client
-    .query("DELETE FROM courses WHERE id = $1", [id])
-    .then((results) => res.status(200).send(`User deleted with ID: ${id}`))
+    prisma.course.delete({
+      where: { id: parseInt(req.params.id),},
+    })
+    .then((results) => res.status(200).send(`User deleted with ID: ${parseInt(req.params.id)}`))
     
   } catch (error) {
     res.status(500).send(`Something went wrong: ${error.message}`);
