@@ -6,6 +6,8 @@ const errorHandler = require("./errorHandler.js");
 const logger = require("./logger.js");
 const dotenv = require("dotenv");
 const { Client } = require("pg");
+const { PrismaClient } = require('@prisma/client')
+const prisma = new PrismaClient()
 
 dotenv.config();
 
